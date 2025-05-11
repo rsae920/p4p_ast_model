@@ -12,6 +12,13 @@ files = os.listdir(data_dir)
 spectrogram_dir = "spectrograms"
 os.makedirs(spectrogram_dir, exist_ok=True)
 
+sr = 22050
+n_fft = 2048
+hop_length = 512
+n_mels = 128
+fmax = None
+win_length = None
+
 emotion_mapping = {
     "01": "neutral",
     "03": "happy",
@@ -36,20 +43,25 @@ for file in files:
                 print(f"Added: {filepath}, Label: {label}")
 
 # Spectrogram Generation Function
-def save_spectrogram(filepath, save_dir, sr=22050, n_fft=2048, hop_length=512, win_length=None, n_mels=128, fmax=None):
+def save_spectrogram(filepath, save_dir, sr=sr, n_fft=n_fft, hop_length=hop_length, win_length=win_length): #include n_mels and fmax if generating mel spectrogram
     try:
         # Load audio file
         y, _ = librosa.load(filepath, sr=sr)
         
-        # Generate Mel spectrogram
-        mel_spec = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, win_length=win_length, n_mels=n_mels, fmax=fmax)
-        log_mel_spec = librosa.power_to_db(mel_spec, ref=np.max)
+        # Generate regular spectrograms
+        spectrogram = librosa.stft(y, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
+
+        # Generates mel spectrogram : requires n_mels and fmax parameters
+        # mel_spec = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, win_length=win_length, n_mels=n_mels, fmax=fmax)
+
+        spectrgram_db = librosa.amplitude_to_db(np.abs(spectrogram), ref=np.max)
+        
         plt.figure(figsize=(10, 4))
-        librosa.display.specshow(log_mel_spec, sr=sr, hop_length=hop_length, cmap="grey")
+        librosa.display.specshow(spectrgram_db, sr=sr, hop_length=hop_length, cmap="grey")
         
         save_path = os.path.join(save_dir, os.path.splitext(os.path.basename(filepath))[0] + ".png")
         plt.savefig(save_path, bbox_inches="tight", pad_inches=0)
-        plt.close()  # Close the plot to avoid overlapping
+        plt.close()
         print(f"Saved: {save_path}")
 
     except Exception as e:
@@ -62,5 +74,7 @@ for filepath, label in data:
     
     # Generate and save spectrogram as image
     save_spectrogram(filepath, label_dir)
+
+print("Spectrograms generated and saved.")
 
 
